@@ -6,6 +6,8 @@ var router = require('./router')
 
 var bodyParser = require('body-parser')
 
+var session = require('express-session')
+
 var app = express()
 
 app.use('/public/', express.static(path.join(__dirname, './public/')))
@@ -17,6 +19,13 @@ app.set('views', path.join(__dirname, './views/'))
 /*==== 配置解析表单POST请求体插件 需放在app.use(router)之前 ====*/
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
+
+app.use(session({
+	secret: 'keyboard cat',
+	resave: false,
+	saveUninitialized: false
+}))
+
 
 /*挂载路由器到app中*/
 app.use(router)

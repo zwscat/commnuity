@@ -7,7 +7,9 @@ var md5 = require('blueimp-md5')
 var router = express.Router()
 
 router.get('/', function (req, res) {
-	res.render('index.html')
+	res.render('index.html', {
+		user: req.session.user
+	})
 })
 
 router.get('/login', function (req, res) {
@@ -15,7 +17,36 @@ router.get('/login', function (req, res) {
 })
 
 router.post('/login', function (req, res) {
-	/**/
+	/* 1、获取表单数据
+	 * 2、查询数据库用户名或密码是否正确‘
+	 * 3、发送响应数据
+	 */
+	User.findOne({
+		email: req.body.email,
+		password: md5(md5(req.body.password) + 'is')
+	}, function (err, user) {
+		if (err) {
+			return res.status(500).json({
+				err_code: 500,
+				message: err.message
+			})
+		}
+
+		if (!user) {
+			return res.status(200).json({
+				err_code: 1,
+				message: 'Email or Password is invalid'
+			})
+		}
+
+		/*====用户存在，登陆成功，通过Session记录登陆状态====*/
+		req.session.user = user
+		
+		res.status(200).json({
+			err_code: 0,
+			message: 'ok'
+		})
+	})
 })
 
 router.get('/register', function (req, res) {
@@ -49,7 +80,7 @@ router.post('/register', function (req, res) {
 				message: 'Email or Nickname aleary exists'
 			})
 		}
-		/*==== 对密码两次加密 ====*/
+		/*==== 对密码进行两次加密 ====*/
 		body.password = md5(md5(body.password))
 		new User(body).save(function (err, user) {
 			if (err) {
@@ -58,12 +89,15 @@ router.post('/register', function (req, res) {
 					message: 'Internal error'
 				})
 			}
-		})
 
-		res.status(200).json({
-			err_code: 0,
-			message: 'Ok'
-		})
+			/*====注册成功，使用seesion记录用户状态====*/
+			req.session.user = user
+
+			res.status(200).json({
+				err_code: 0,
+				message: 'Ok'
+			})
+		})		
 	})
 })
 
@@ -100,5 +134,12 @@ router.post('/register', async function (req, res) {
 		})
 	}
 })*/
+
+router.get('logout', function (req, res) {
+	req.session.user = null
+
+	/*==== 重定向到登陆页 ====*/
+	res.redirect('login')
+})
 
 module.exports = router
